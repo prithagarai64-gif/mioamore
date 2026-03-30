@@ -1,0 +1,831 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>Mio Amore — Your Favourite Fresh Cakes</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400;1,600&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500&family=Cinzel:wght@400;600;700&display=swap" rel="stylesheet"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{background:#080012;color:#FAF5FF;font-family:'DM Sans',sans-serif;overflow-x:hidden}
+::-webkit-scrollbar{width:3px}
+::-webkit-scrollbar-track{background:#080012}
+::-webkit-scrollbar-thumb{background:#7C3AED;border-radius:2px}
+@keyframes marquee{from{transform:translateX(0)}to{transform:translateX(-50%)}}
+@keyframes fadeUp{from{opacity:0;transform:translateY(30px)}to{opacity:1;transform:translateY(0)}}
+@keyframes pulseGlow{0%,100%{box-shadow:0 0 20px rgba(124,58,237,.5)}50%{box-shadow:0 0 50px rgba(168,85,247,.9)}}
+@keyframes toastPop{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
+.reveal{opacity:0;transform:translateY(36px);transition:opacity .75s ease,transform .75s ease}
+.reveal.vis{opacity:1;transform:translateY(0)}
+.card-hover{transition:transform .4s cubic-bezier(.25,.46,.45,.94),box-shadow .4s}
+.card-hover:hover{transform:translateY(-8px);box-shadow:0 24px 60px rgba(124,58,237,.35)}
+.img-zoom img{transition:transform .6s cubic-bezier(.25,.46,.45,.94)}
+.img-zoom:hover img{transform:scale(1.07)}
+input::placeholder{color:rgba(196,181,253,.4)}
+button{cursor:pointer}
+.panel-trans{transition:opacity .55s ease,transform .55s ease}
+select option{background:#1a0035;color:#FAF5FF}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel" data-presets="react">
+const {useState,useEffect,useRef,useMemo}=React;
+
+// ── ICONS ──
+const Icon=({d,size=18,color="currentColor",fill="none",strokeWidth=1.5})=>(
+  <svg width={size} height={size} viewBox="0 0 24 24" fill={fill} stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round"><path d={d}/></svg>
+);
+const IcCart=({size=18,color="currentColor"})=><svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>;
+const IcX=({size=18,color="currentColor"})=><svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="1.5" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>;
+const IcPlus=({size=18,color="currentColor"})=><svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="1.5" strokeLinecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>;
+const IcMinus=({size=18,color="currentColor"})=><svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="1.5" strokeLinecap="round"><line x1="5" y1="12" x2="19" y2="12"/></svg>;
+const IcHeart=({size=18,color="currentColor",filled=false})=><svg width={size} height={size} viewBox="0 0 24 24" fill={filled?"currentColor":"none"} stroke={color} strokeWidth="1.5" strokeLinecap="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>;
+const IcSearch=({size=18,color="currentColor"})=><svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="1.5" strokeLinecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>;
+const IcMap=({size=18,color="currentColor"})=><svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="1.5" strokeLinecap="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>;
+const IcPhone=({size=18,color="currentColor"})=><svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="1.5" strokeLinecap="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 13a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.6 2.22h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 9.91a16 16 0 0 0 6.06 6.06l1.75-1.75a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>;
+const IcTruck=({size=18,color="currentColor"})=><svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="1.5" strokeLinecap="round"><rect x="1" y="3" width="15" height="13"/><path d="M16 8h4l3 3v5h-7V8z"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>;
+const IcAward=({size=18,color="currentColor"})=><svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="1.5" strokeLinecap="round"><circle cx="12" cy="8" r="6"/><path d="M15.477 12.89L17 22l-5-3-5 3 1.523-9.11"/></svg>;
+const IcClock=({size=18,color="currentColor"})=><svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="1.5" strokeLinecap="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>;
+const IcCheck=({size=18,color="currentColor"})=><svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="1.5" strokeLinecap="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>;
+const IcArrow=({size=18,color="currentColor"})=><svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="1.5" strokeLinecap="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>;
+const IcChevron=({size=18,color="currentColor"})=><svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="1.5" strokeLinecap="round"><polyline points="9 18 15 12 9 6"/></svg>;
+const IcStar=({size=18,color="currentColor"})=><svg width={size} height={size} viewBox="0 0 24 24" fill={color} stroke={color} strokeWidth="1.5" strokeLinecap="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>;
+const IcInsta=({size=18,color="currentColor"})=><svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="1.5" strokeLinecap="round"><rect x="2" y="2" width="20" height="20" rx="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/></svg>;
+const IcFb=({size=18,color="currentColor"})=><svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="1.5" strokeLinecap="round"><path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"/></svg>;
+const IcSparkle=({size=18,color="currentColor"})=><svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="1.5" strokeLinecap="round"><path d="M12 3l1.88 5.47L19 9.27l-4 3.64 1.18 6.09L12 16l-4.18 2.99L9 12.91 5 9.27l5.12-.8z"/></svg>;
+
+// ── IMAGE DATA ──
+const CI=["https://images.unsplash.com/photo-1578985545062-69928b1d9587?w=400&q=75","https://images.unsplash.com/photo-1571115177098-24ec42ed204d?w=400&q=75","https://images.unsplash.com/photo-1586788224331-947f68671cf1?w=400&q=75","https://images.unsplash.com/photo-1535141192574-5d4897c12636?w=400&q=75","https://images.unsplash.com/photo-1565958011703-44f9829ba187?w=400&q=75","https://images.unsplash.com/photo-1488477181946-6428a0291777?w=400&q=75","https://images.unsplash.com/photo-1562777717-dc6984f65a63?w=400&q=75","https://images.unsplash.com/photo-1464349095431-e9a21285b5f3?w=400&q=75"];
+const PI=["https://images.unsplash.com/photo-1608198093002-ad4e005484ec?w=400&q=75","https://images.unsplash.com/photo-1614707267537-b85aaf00c4b7?w=400&q=75","https://images.unsplash.com/photo-1551024601-bec78aea704b?w=400&q=75","https://images.unsplash.com/photo-1563729784474-d77dbb933a9e?w=400&q=75"];
+const SI=["https://images.unsplash.com/photo-1553909489-cd47e0ef937f?w=400&q=75","https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=400&q=75","https://images.unsplash.com/photo-1601050690597-df0568f70950?w=400&q=75","https://images.unsplash.com/photo-1528735602780-2552fd46c7af?w=400&q=75","https://images.unsplash.com/photo-1546833998-877b37c2e5c6?w=400&q=75"];
+const KI=["https://images.unsplash.com/photo-1499636136210-6f4ee915583e?w=400&q=75","https://images.unsplash.com/photo-1558961363-fa8fdf82db35?w=400&q=75","https://images.unsplash.com/photo-1548365328-8c6db3220e4c?w=400&q=75"];
+const DI=["https://images.unsplash.com/photo-1607958996333-41aef7caefaa?w=400&q=75","https://images.unsplash.com/photo-1574085733277-851d9d856a3a?w=400&q=75","https://images.unsplash.com/photo-1519915028121-7d3463d20b13?w=400&q=75","https://images.unsplash.com/photo-1611329532992-0d7e9f82e2ac?w=400&q=75"];
+
+// ── ALL MENU DATA ──
+const READY_CAKES=[
+  {id:"r1",name:"Marble Mania",w:"190g",price:185,tag:"Popular",img:CI[7]},
+  {id:"r2",name:"Rich Dutch Chocolate",w:"400g",price:265,img:CI[1]},
+  {id:"r3",name:"Butterscotch Junior",w:"400g",price:280,img:CI[3]},
+  {id:"r4",name:"Mango Samoa",w:"375g",price:320,tag:"Seasonal",img:CI[4]},
+  {id:"r5",name:"Choco Floral",w:"500g",price:330,img:CI[5]},
+  {id:"r6",name:"Strawberry Cake",w:"450g",price:330,img:CI[4]},
+  {id:"r7",name:"Black Forest Jr",w:"350g",price:335,tag:"Bestseller",img:CI[0]},
+  {id:"r8",name:"Kesar Pista",w:"550g",price:350,img:CI[3]},
+  {id:"r9",name:"Choco Feather",w:"500g",price:370,img:CI[1]},
+  {id:"r10",name:"Butterscotch Eggless",w:"550g",price:385,tag:"Eggless",img:CI[7]},
+  {id:"r11",name:"Almond Honey",w:"600g",price:390,img:CI[3]},
+  {id:"r12",name:"Red Velvet",w:"400g",price:400,tag:"Bestseller",img:CI[2]},
+  {id:"r13",name:"Chocolate Heart",w:"700g",price:400,img:CI[1]},
+  {id:"r14",name:"Chocolate Round",w:"500g",price:430,img:CI[5]},
+  {id:"r15",name:"Choco Espresso",w:"500g",price:450,img:CI[1]},
+  {id:"r16",name:"Black Forest",w:"500g",price:470,tag:"Classic",img:CI[0]},
+  {id:"r17",name:"Choco Blossom",w:"800g",price:495,img:CI[5]},
+  {id:"r18",name:"White Forest Eggless",w:"500g",price:495,tag:"Eggless",img:CI[3]},
+  {id:"r19",name:"Choco Fantasy",w:"800g",price:495,img:CI[1]},
+  {id:"r20",name:"Choco Rosalia",w:"500g",price:495,img:CI[5]},
+  {id:"r21",name:"Chocolate Heart XL",w:"1.1kg",price:700,img:CI[1]},
+  {id:"r22",name:"Choco Feather Eggless",w:"1kg",price:770,tag:"Eggless",img:CI[5]},
+  {id:"r23",name:"Dual Forest",w:"1kg",price:900,img:CI[0]},
+  {id:"r24",name:"Butterscotch Two Tier",w:"2 Tier",price:1000,tag:"Special",img:CI[6]},
+  {id:"r25",name:"Chocolate Two Tier",w:"2 Tier",price:1000,tag:"Special",img:CI[6]},
+];
+const MTO_CAKES=[
+  {id:"m1",name:"Love Potion",w:"1kg",price:750,img:CI[4]},
+  {id:"m2",name:"Number Magic",w:"1kg",price:850,img:CI[6]},
+  {id:"m3",name:"Grand Prix Central",w:"1kg",price:900,img:CI[2]},
+  {id:"m4",name:"Wheelie Fun",w:"1.2kg",price:910,img:CI[1]},
+  {id:"m5",name:"Ambrosia Cake",w:"1kg",price:950,img:CI[3]},
+  {id:"m6",name:"Magical Alphabet",w:"1kg",price:990,img:CI[6]},
+  {id:"m7",name:"Funny Bunny",w:"1.2kg",price:1020,img:CI[4]},
+  {id:"m8",name:"Mighty Lion",w:"1.2kg",price:1020,img:CI[5]},
+  {id:"m9",name:"Top Cherry",w:"1kg",price:1100,img:CI[2]},
+  {id:"m10",name:"Dark Indulgence",w:"1kg",price:1100,img:CI[1]},
+  {id:"m11",name:"Choco Berry",w:"1kg",price:1100,img:CI[0]},
+  {id:"m12",name:"Divine Indulgence",w:"1.5kg",price:1125,img:CI[6]},
+  {id:"m13",name:"Roaring Rainforest",w:"1.5kg",price:1125,img:CI[4]},
+  {id:"m14",name:"Heart Matter",w:"1.5kg",price:1650,tag:"Premium",img:CI[6]},
+  {id:"m15",name:"Garden Gala",w:"1.5kg",price:1275,img:CI[3]},
+  {id:"m16",name:"Football Mania",w:"1.5kg",price:1275,img:CI[2]},
+  {id:"m17",name:"Mango Muse",w:"1kg",price:1400,tag:"Seasonal",img:CI[4]},
+  {id:"m18",name:"Rosogulla Cake",w:"1kg",price:1400,tag:"Bengali Special",img:CI[0]},
+  {id:"m19",name:"Jungle Wonder",w:"1.5kg",price:1650,img:CI[5]},
+  {id:"m20",name:"Doraemon Cake",w:"1.5kg",price:1650,img:CI[6]},
+  {id:"m21",name:"Starry Party",w:"1.5kg",price:2400,tag:"Luxury",img:CI[6]},
+  {id:"m22",name:"Frosted Fairyland",w:"3kg",price:3300,tag:"Premium",img:CI[6]},
+  {id:"m23",name:"Fancy Fiesta",w:"3kg",price:3350,tag:"Premium",img:CI[6]},
+  {id:"m24",name:"Lavender Cake",w:"3kg",price:4200,tag:"Signature",img:CI[6]},
+  {id:"m25",name:"Petals & Pearls",w:"3kg",price:4800,tag:"Wedding",img:CI[6]},
+];
+const PASTRIES=[
+  {id:"p1",name:"Choco Classic (Eggless)",price:30,tag:"Eggless",img:PI[0]},
+  {id:"p2",name:"Red Velvet (Eggless)",price:50,tag:"Eggless",img:PI[2]},
+  {id:"p3",name:"Chocolate Hazel Nut",price:35,img:PI[1]},
+  {id:"p4",name:"Choco Chips Pastry",price:28,img:PI[0]},
+  {id:"p5",name:"Strawberry Pastry",price:25,img:PI[3]},
+  {id:"p6",name:"Mango Pastry",price:32,tag:"Seasonal",img:PI[2]},
+  {id:"p7",name:"Choco Smoothie",price:45,img:PI[1]},
+  {id:"p8",name:"Choco Crunch",price:26,img:PI[0]},
+  {id:"p9",name:"Black Forest Supreme",price:42,tag:"Bestseller",img:PI[2]},
+  {id:"p10",name:"Chocolate Excess",price:30,img:PI[1]},
+  {id:"p11",name:"Butterscotch Pastry",price:28,img:PI[3]},
+];
+const VEG_SAV=[
+  {id:"vs1",name:"Cheese Sandwich",price:35,img:SI[3]},
+  {id:"vs2",name:"Mishtisukh",price:18,img:SI[0]},
+  {id:"vs3",name:"Paneer Tikka Masala Roll",price:44,tag:"Spicy",img:SI[2]},
+  {id:"vs4",name:"Paneer Puff",price:18,img:SI[0]},
+  {id:"vs5",name:"Cheese Corn Roll",price:22,img:SI[4]},
+  {id:"vs6",name:"Vegetable Patties",price:20,img:SI[0]},
+  {id:"vs7",name:"Vegetable Burger",price:35,img:SI[1]},
+];
+const NV_SAV=[
+  {id:"nv1",name:"Chicken Singara",price:18,img:SI[0]},
+  {id:"nv2",name:"Chicken Sausage Roll",price:28,img:SI[2]},
+  {id:"nv3",name:"Chicken 65 Roll",price:48,tag:"Spicy",img:SI[4]},
+  {id:"nv4",name:"Chicken Patties",price:26,img:SI[0]},
+  {id:"nv5",name:"Chicken Sandwich",price:40,img:SI[3]},
+  {id:"nv6",name:"Chicken Internet 5G",price:35,img:SI[2]},
+  {id:"nv7",name:"Chunky Chicken Burger",price:55,tag:"Bestseller",img:SI[1]},
+  {id:"nv8",name:"Chicken Tikka Pizza",price:46,img:SI[4]},
+  {id:"nv9",name:"Fish Chop",price:18,img:SI[0]},
+  {id:"nv10",name:"Chicken Claws",price:50,img:SI[2]},
+  {id:"nv11",name:"Chicken Olive Sub",price:50,img:SI[3]},
+];
+const DESSERTS=[
+  {id:"d1",name:"Choco Vanilla Mousse",price:50,tag:"Eggless",img:DI[1]},
+  {id:"d2",name:"Almond Fudge Brownie",price:45,tag:"Eggless",img:DI[0]},
+  {id:"d3",name:"Brownie Candy",price:55,img:DI[0]},
+  {id:"d4",name:"Choco Volcano",price:45,tag:"Hot",img:DI[2]},
+  {id:"d5",name:"Choco Chips Muffin",price:20,tag:"Eggless",img:DI[3]},
+  {id:"d6",name:"Choco Chips Cranberry Muffin",price:36,img:DI[3]},
+  {id:"d7",name:"Date Walnut Slice",price:22,img:DI[0]},
+  {id:"d8",name:"Fruit Slice Cake",price:22,img:DI[2]},
+  {id:"d9",name:"Crown Cake",price:18,img:DI[3]},
+  {id:"d10",name:"Rich Fruit Cake",price:175,img:DI[2]},
+  {id:"d11",name:"Plain Butter Cake",price:140,img:DI[3]},
+  {id:"d12",name:"Madeira Slice",price:18,img:DI[0]},
+];
+const COOKIES=[
+  {id:"k1",name:"Cashewnut Cookies",price:60,img:KI[0]},
+  {id:"k2",name:"Chocolate Cookies",price:60,img:KI[1]},
+  {id:"k3",name:"Vanilla Cookies",price:50,w:"140g",img:KI[2]},
+  {id:"k4",name:"Salted Cookies",price:50,w:"150g",img:KI[0]},
+  {id:"k5",name:"Chocolate Fudge Cookies",price:80,w:"150g",img:KI[1]},
+  {id:"k6",name:"Choco Vanilla Cookies",price:60,w:"150g",img:KI[2]},
+  {id:"k7",name:"Multigrain Cookies",price:80,w:"150g",tag:"Healthy",img:KI[0]},
+  {id:"k8",name:"Oatmeal Raisin Cookies",price:70,img:KI[2]},
+  {id:"k9",name:"Shrewsbury Cookies",price:80,w:"150g",tag:"Classic",img:KI[1]},
+  {id:"k10",name:"Fruit & Nut Cookies",price:70,img:KI[0]},
+  {id:"k11",name:"Kaju Barfi",price:15,img:KI[2]},
+  {id:"k12",name:"Kheer Gaja",price:25,img:KI[1]},
+  {id:"k13",name:"Ghee Laddoo",price:15,img:KI[0]},
+];
+
+// ── THREE HERO ──
+function ThreeHero(){
+  const ref=useRef();
+  useEffect(()=>{
+    const canvas=ref.current; if(!canvas)return;
+    const W=()=>canvas.parentElement.clientWidth, H=()=>canvas.parentElement.clientHeight;
+    const renderer=new THREE.WebGLRenderer({canvas,antialias:true,alpha:true});
+    renderer.setPixelRatio(Math.min(devicePixelRatio,2));
+    renderer.setSize(W(),H()); renderer.setClearColor(0,0);
+    const scene=new THREE.Scene();
+    const camera=new THREE.PerspectiveCamera(58,W()/H(),0.1,100);
+    camera.position.set(0,0,6);
+    scene.add(new THREE.AmbientLight(0xffffff,0.2));
+    const L1=new THREE.PointLight(0x7C3AED,5,14); L1.position.set(2,3,2); scene.add(L1);
+    const L2=new THREE.PointLight(0xC026D3,4,12); L2.position.set(-3,-1,1); scene.add(L2);
+    const geos=[new THREE.TorusGeometry(0.5,0.18,14,64),new THREE.OctahedronGeometry(0.42),new THREE.IcosahedronGeometry(0.38),new THREE.TorusKnotGeometry(0.3,0.09,90,14),new THREE.DodecahedronGeometry(0.38)];
+    const cols=[0x7C3AED,0xA855F7,0x6B21A8,0xC026D3,0x9333EA,0xE879F9];
+    const shapes=Array.from({length:20},(_,i)=>{
+      const wf=i%6===0;
+      const m=new THREE.Mesh(geos[i%geos.length],new THREE.MeshStandardMaterial({color:cols[i%cols.length],roughness:0.2,metalness:0.85,wireframe:wf,transparent:true,opacity:wf?0.3:0.9}));
+      const ang=(i/20)*Math.PI*2+Math.random(), r=2.8+Math.random()*2.2;
+      m.position.set(Math.cos(ang)*r*1.5,(Math.random()-0.5)*4.5,-1-Math.random()*4);
+      m.scale.setScalar(0.45+Math.random()*0.85);
+      m.userData={spd:0.004+Math.random()*0.009,fSpd:0.5+Math.random(),fAmp:0.12+Math.random()*0.15,fOff:Math.random()*Math.PI*2,r,ang,oSpd:(Math.random()-0.5)*0.003};
+      scene.add(m); return m;
+    });
+    const pPos=new Float32Array(150*3);
+    for(let i=0;i<150;i++){pPos[i*3]=(Math.random()-.5)*22;pPos[i*3+1]=(Math.random()-.5)*14;pPos[i*3+2]=(Math.random()-.5)*10-4;}
+    const pGeo=new THREE.BufferGeometry(); pGeo.setAttribute("position",new THREE.BufferAttribute(pPos,3));
+    scene.add(new THREE.Points(pGeo,new THREE.PointsMaterial({color:0xC4B5FD,size:0.022,transparent:true,opacity:0.65})));
+    let mx=0,my=0;
+    const onMouse=e=>{mx=(e.clientX/innerWidth-0.5)*2;my=-(e.clientY/innerHeight-0.5)*2;};
+    window.addEventListener("mousemove",onMouse);
+    const onResize=()=>{renderer.setSize(W(),H());camera.aspect=W()/H();camera.updateProjectionMatrix();};
+    window.addEventListener("resize",onResize);
+    const clk=new THREE.Clock(); let aid;
+    const animate=()=>{
+      aid=requestAnimationFrame(animate); const t=clk.getElapsedTime();
+      shapes.forEach(s=>{
+        s.userData.ang+=s.userData.oSpd;
+        s.position.x=Math.cos(s.userData.ang)*s.userData.r*1.5;
+        s.position.y+=Math.sin(t*s.userData.fSpd+s.userData.fOff)*s.userData.fAmp*0.01;
+        s.rotation.x+=s.userData.spd*0.7; s.rotation.y+=s.userData.spd;
+      });
+      camera.position.x+=(mx*0.5-camera.position.x)*0.04;
+      camera.position.y+=(my*0.3-camera.position.y)*0.04;
+      camera.lookAt(0,0,0);
+      L1.position.set(Math.sin(t*0.4)*4,Math.cos(t*0.3)*2,2);
+      renderer.render(scene,camera);
+    };
+    animate();
+    return()=>{cancelAnimationFrame(aid);window.removeEventListener("mousemove",onMouse);window.removeEventListener("resize",onResize);renderer.dispose();};
+  },[]);
+  return <canvas ref={ref} style={{position:"absolute",inset:0,width:"100%",height:"100%",pointerEvents:"none"}}/>;
+}
+
+// ── THREE CAKE ──
+function ThreeCake({sectionRef}){
+  const ref=useRef();
+  const [panel,setPanel]=useState(0);
+  const panels=[
+    {side:"left",eye:"Chapter 01",title:"Baked Fresh\nEvery Single Day",desc:"Our bakers arrive before dawn. No preservatives. No shortcuts. Pure honest baking — the way it's always been."},
+    {side:"right",eye:"Chapter 02",title:"Art in\nEvery Tier",desc:"Hand-decorated by skilled artisans. From fondant florals to intricate piping — every order is a canvas."},
+    {side:"left",eye:"Chapter 03",title:"Made for\nYour Moments",desc:"Three decades of making celebrations sweeter. Mio Amore has always been there for your special moments."},
+  ];
+  useEffect(()=>{
+    const canvas=ref.current; if(!canvas)return;
+    const el=canvas.parentElement;
+    const W=()=>el.clientWidth, H=()=>el.clientHeight;
+    const renderer=new THREE.WebGLRenderer({canvas,antialias:true,alpha:true});
+    renderer.setPixelRatio(Math.min(devicePixelRatio,2));
+    renderer.setSize(W(),H()); renderer.shadowMap.enabled=true; renderer.setClearColor(0,0);
+    const scene=new THREE.Scene();
+    const camera=new THREE.PerspectiveCamera(45,W()/H(),0.1,100);
+    camera.position.set(0,1.5,6.5); camera.lookAt(0,0.5,0);
+    scene.add(new THREE.AmbientLight(0xfff0ff,0.5));
+    const spot=new THREE.SpotLight(0xffffff,3,20,Math.PI/5,0.3);
+    spot.position.set(0,8,4); spot.castShadow=true; scene.add(spot);
+    const VL=new THREE.PointLight(0x7C3AED,4,14); VL.position.set(-4,2,-2); scene.add(VL);
+    const FL=new THREE.PointLight(0xC026D3,3,12); FL.position.set(4,1,2); scene.add(FL);
+    const cake=new THREE.Group(); scene.add(cake);
+    const layer=(r,h,col,y)=>{const m=new THREE.Mesh(new THREE.CylinderGeometry(r,r*1.02,h,64),new THREE.MeshStandardMaterial({color:col,roughness:0.45,metalness:0.15}));m.position.y=y;m.castShadow=true;return m;};
+    const frost=(r,y)=>{const m=new THREE.Mesh(new THREE.TorusGeometry(r*0.87,0.095,10,64),new THREE.MeshStandardMaterial({color:0xEDE9FE,roughness:0.3}));m.position.y=y;return m;};
+    const band=(r,y)=>{const m=new THREE.Mesh(new THREE.TorusGeometry(r,0.035,6,64),new THREE.MeshStandardMaterial({color:0xC4B5FD,metalness:0.95,roughness:0.05}));m.position.y=y;return m;};
+    cake.add(layer(1.0,0.72,0x3B0764,-0.86),frost(1.0,-0.51),band(1.01,-0.86));
+    cake.add(layer(0.70,0.62,0x6B21A8,-0.19),frost(0.70,0.10),band(0.71,-0.19));
+    cake.add(layer(0.46,0.52,0x7C3AED,0.55),frost(0.46,0.80),band(0.47,0.55));
+    const topper=new THREE.Mesh(new THREE.SphereGeometry(0.12,16,16),new THREE.MeshStandardMaterial({color:0xC4B5FD,metalness:1,roughness:0.04,emissive:0xA855F7,emissiveIntensity:0.6}));
+    topper.position.y=1.1; cake.add(topper);
+    const flames=[];
+    [[0.3,0],[-0.22,0.22],[0.05,-0.32]].forEach(([cx,cz])=>{
+      const c=new THREE.Mesh(new THREE.CylinderGeometry(0.03,0.03,0.26,8),new THREE.MeshStandardMaterial({color:0xEDE9FE,emissive:0xC4B5FD,emissiveIntensity:0.3}));
+      c.position.set(cx,0.93,cz); cake.add(c);
+      const f=new THREE.Mesh(new THREE.SphereGeometry(0.055,8,8),new THREE.MeshStandardMaterial({color:0xE879F9,emissive:0xC026D3,emissiveIntensity:3.5,transparent:true,opacity:0.92}));
+      f.position.set(cx,1.12,cz); f.userData.by=1.12; cake.add(f); flames.push(f);
+    });
+    const plate=new THREE.Mesh(new THREE.CylinderGeometry(1.35,1.35,0.065,64),new THREE.MeshStandardMaterial({color:0xFAF5FF,roughness:0.2,metalness:0.35}));
+    plate.position.y=-1.25; cake.add(plate);
+    const gnd=new THREE.Mesh(new THREE.CircleGeometry(3.5,64),new THREE.MeshStandardMaterial({color:0x080012,roughness:0.9}));
+    gnd.rotation.x=-Math.PI/2; gnd.position.y=-1.29; gnd.receiveShadow=true; scene.add(gnd);
+    let tY=0,fY=0;
+    const onScroll=()=>{
+      const sec=sectionRef.current; if(!sec)return;
+      const rect=sec.getBoundingClientRect();
+      const prog=Math.max(0,Math.min(1,-rect.top/(sec.offsetHeight-innerHeight)));
+      tY=prog*Math.PI*4;
+      camera.position.z=6.5-prog*1.8;
+      setPanel(Math.min(Math.floor(prog*3),2));
+    };
+    window.addEventListener("scroll",onScroll,{passive:true}); onScroll();
+    const onResize=()=>{renderer.setSize(W(),H());camera.aspect=W()/H();camera.updateProjectionMatrix();};
+    window.addEventListener("resize",onResize);
+    const clk=new THREE.Clock(); let aid;
+    const animate=()=>{
+      aid=requestAnimationFrame(animate); const t=clk.getElapsedTime();
+      fY+=(tY-fY)*0.05;
+      cake.rotation.y=fY; cake.position.y=Math.sin(t*0.6)*0.055;
+      flames.forEach(f=>{f.position.y=f.userData.by+Math.sin(t*13)*0.016;f.scale.setScalar(0.88+Math.sin(t*11)*0.14);});
+      VL.intensity=3+Math.sin(t*0.9)*1.2;
+      renderer.render(scene,camera);
+    };
+    animate();
+    return()=>{cancelAnimationFrame(aid);window.removeEventListener("scroll",onScroll);window.removeEventListener("resize",onResize);renderer.dispose();};
+  },[]);
+  return(
+    <div style={{position:"sticky",top:0,height:"100vh",overflow:"hidden"}}>
+      <canvas ref={ref} style={{position:"absolute",inset:0,width:"100%",height:"100%"}}/>
+      {panels.map((p,i)=>(
+        <div key={i} className="panel-trans" style={{position:"absolute",top:"50%",...(p.side==="left"?{left:"5%"}:{right:"5%"}),transform:panel===i?"translateY(-50%)":"translateY(calc(-50% + 20px))",opacity:panel===i?1:0,maxWidth:340,padding:"36px 32px",textAlign:p.side==="right"?"right":"left",zIndex:10,background:"rgba(8,0,18,0.55)",backdropFilter:"blur(18px)",border:"1px solid rgba(196,181,253,0.12)",borderRadius:4}}>
+          <p style={{fontSize:"0.58rem",letterSpacing:"0.4em",color:"#A855F7",textTransform:"uppercase",marginBottom:10}}>{p.eye}</p>
+          <h3 style={{fontFamily:"'Playfair Display',serif",fontSize:"clamp(1.6rem,2.5vw,2.4rem)",fontWeight:400,color:"#FAF5FF",lineHeight:1.2,marginBottom:14,whiteSpace:"pre-line"}}>{p.title}</h3>
+          <p style={{fontSize:"0.85rem",lineHeight:1.85,color:"rgba(196,181,253,0.62)",fontWeight:300}}>{p.desc}</p>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// ── PRODUCT CARD ──
+function ProductCard({item,onAdd,wishlist,toggleWish}){
+  const inWish=wishlist.has(item.id);
+  return(
+    <div className="card-hover img-zoom" style={{background:"rgba(45,16,87,0.35)",border:"1px solid rgba(196,181,253,0.1)",borderRadius:6,overflow:"hidden",position:"relative"}}>
+      <div style={{position:"relative",aspectRatio:"4/3",overflow:"hidden"}}>
+        <img src={item.img} alt={item.name} loading="lazy" style={{width:"100%",height:"100%",objectFit:"cover",filter:"brightness(0.8) saturate(0.85)"}}/>
+        <div style={{position:"absolute",inset:0,background:"linear-gradient(to top,rgba(8,0,18,0.9) 0%,transparent 55%)"}}/>
+        {item.tag&&<div style={{position:"absolute",top:10,left:10,background:"linear-gradient(135deg,#7C3AED,#A855F7)",color:"#fff",fontSize:"0.52rem",letterSpacing:"0.15em",padding:"3px 9px",borderRadius:2,textTransform:"uppercase",fontFamily:"'Cinzel',serif"}}>{item.tag}</div>}
+        <button onClick={()=>toggleWish(item.id)} style={{position:"absolute",top:8,right:8,background:"rgba(8,0,18,0.7)",border:"1px solid rgba(196,181,253,0.2)",borderRadius:"50%",width:32,height:32,display:"flex",alignItems:"center",justifyContent:"center",color:inWish?"#E879F9":"rgba(196,181,253,0.5)"}}>
+          <IcHeart size={14} color={inWish?"#E879F9":"rgba(196,181,253,0.5)"} filled={inWish}/>
+        </button>
+      </div>
+      <div style={{padding:"16px 14px 18px"}}>
+        <h4 style={{fontFamily:"'Playfair Display',serif",fontSize:"1rem",fontWeight:400,color:"#FAF5FF",marginBottom:4,lineHeight:1.25}}>{item.name}</h4>
+        {item.w&&<p style={{fontSize:"0.68rem",color:"rgba(196,181,253,0.45)",marginBottom:8}}>{item.w}</p>}
+        <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginTop:10}}>
+          <span style={{fontFamily:"'Cinzel',serif",fontSize:"1rem",color:"#C4B5FD",fontWeight:600}}>₹{item.price}</span>
+          <button onClick={()=>onAdd(item)} style={{background:"linear-gradient(135deg,#7C3AED,#A855F7)",color:"#fff",border:"none",padding:"7px 15px",borderRadius:3,fontSize:"0.6rem",letterSpacing:"0.12em",fontFamily:"'Cinzel',serif",textTransform:"uppercase",transition:"transform 0.2s"}}
+            onMouseEnter={e=>e.currentTarget.style.transform="translateY(-1px)"}
+            onMouseLeave={e=>e.currentTarget.style.transform="translateY(0)"}>Add</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── PRODUCT GRID ──
+function ProductGrid({items,onAdd,wishlist,toggleWish}){
+  const [q,setQ]=useState("");
+  const [sort,setSort]=useState("default");
+  const filtered=useMemo(()=>{
+    let r=items.filter(i=>i.name.toLowerCase().includes(q.toLowerCase()));
+    if(sort==="asc") r=[...r].sort((a,b)=>a.price-b.price);
+    if(sort==="desc") r=[...r].sort((a,b)=>b.price-a.price);
+    return r;
+  },[items,q,sort]);
+  return(
+    <>
+      <div style={{display:"flex",gap:14,marginBottom:32,flexWrap:"wrap",alignItems:"center"}}>
+        <div style={{flex:1,minWidth:220,position:"relative"}}>
+          <span style={{position:"absolute",left:13,top:"50%",transform:"translateY(-50%)"}}>
+            <IcSearch size={14} color="rgba(196,181,253,0.4)"/>
+          </span>
+          <input value={q} onChange={e=>setQ(e.target.value)} placeholder="Search items..." style={{width:"100%",background:"rgba(45,16,87,0.4)",border:"1px solid rgba(196,181,253,0.15)",borderRadius:4,padding:"11px 12px 11px 38px",color:"#FAF5FF",fontSize:"0.85rem",outline:"none"}}/>
+        </div>
+        <select value={sort} onChange={e=>setSort(e.target.value)} style={{background:"rgba(45,16,87,0.5)",border:"1px solid rgba(196,181,253,0.15)",borderRadius:4,padding:"11px 14px",color:"#C4B5FD",fontSize:"0.8rem",outline:"none"}}>
+          <option value="default">Sort: Featured</option>
+          <option value="asc">Price: Low → High</option>
+          <option value="desc">Price: High → Low</option>
+        </select>
+        <span style={{fontSize:"0.72rem",color:"rgba(196,181,253,0.4)"}}>{filtered.length} items</span>
+      </div>
+      <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(220px,1fr))",gap:18}}>
+        {filtered.map(item=><ProductCard key={item.id} item={item} onAdd={onAdd} wishlist={wishlist} toggleWish={toggleWish}/>)}
+      </div>
+    </>
+  );
+}
+
+// ── CART DRAWER ──
+function CartDrawer({cart,open,onClose,onQty}){
+  const total=cart.reduce((s,i)=>s+i.price*i.qty,0);
+  return(
+    <>
+      {open&&<div onClick={onClose} style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.7)",zIndex:1100,backdropFilter:"blur(4px)"}}/>}
+      <div style={{position:"fixed",top:0,right:0,height:"100vh",width:390,maxWidth:"92vw",background:"#0F0020",borderLeft:"1px solid rgba(196,181,253,0.15)",zIndex:1200,transform:open?"translateX(0)":"translateX(110%)",transition:"transform 0.4s cubic-bezier(0.25,0.46,0.45,0.94)",display:"flex",flexDirection:"column"}}>
+        <div style={{padding:"26px 26px 18px",borderBottom:"1px solid rgba(196,181,253,0.1)",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+          <div>
+            <h3 style={{fontFamily:"'Cinzel',serif",fontSize:"0.82rem",letterSpacing:"0.2em",color:"#C4B5FD"}}>YOUR ORDER</h3>
+            <p style={{fontSize:"0.72rem",color:"rgba(196,181,253,0.4)",marginTop:2}}>{cart.reduce((s,i)=>s+i.qty,0)} items</p>
+          </div>
+          <button onClick={onClose} style={{background:"rgba(196,181,253,0.08)",border:"1px solid rgba(196,181,253,0.15)",borderRadius:"50%",width:35,height:35,color:"#C4B5FD",display:"flex",alignItems:"center",justifyContent:"center"}}>
+            <IcX size={15}/>
+          </button>
+        </div>
+        <div style={{flex:1,overflowY:"auto",padding:"14px 26px"}}>
+          {cart.length===0?(
+            <div style={{textAlign:"center",padding:"55px 0",color:"rgba(196,181,253,0.3)"}}>
+              <IcCart size={46} color="rgba(196,181,253,0.2)"/>
+              <p style={{marginTop:14,fontSize:"0.85rem"}}>Your cart is empty</p>
+            </div>
+          ):cart.map(item=>(
+            <div key={item.id} style={{display:"flex",gap:12,padding:"13px 0",borderBottom:"1px solid rgba(196,181,253,0.07)",alignItems:"center"}}>
+              <img src={item.img} alt={item.name} style={{width:56,height:56,objectFit:"cover",borderRadius:4,flexShrink:0}}/>
+              <div style={{flex:1}}>
+                <p style={{fontSize:"0.82rem",color:"#FAF5FF",marginBottom:4,lineHeight:1.3}}>{item.name}</p>
+                <p style={{fontSize:"0.76rem",color:"#C4B5FD"}}>₹{item.price}</p>
+              </div>
+              <div style={{display:"flex",alignItems:"center",gap:7}}>
+                <button onClick={()=>onQty(item.id,-1)} style={{background:"rgba(196,181,253,0.1)",border:"1px solid rgba(196,181,253,0.15)",borderRadius:3,width:25,height:25,color:"#C4B5FD",display:"flex",alignItems:"center",justifyContent:"center"}}><IcMinus size={10}/></button>
+                <span style={{fontSize:"0.83rem",color:"#FAF5FF",minWidth:16,textAlign:"center"}}>{item.qty}</span>
+                <button onClick={()=>onQty(item.id,1)} style={{background:"rgba(124,58,237,0.3)",border:"1px solid rgba(196,181,253,0.2)",borderRadius:3,width:25,height:25,color:"#C4B5FD",display:"flex",alignItems:"center",justifyContent:"center"}}><IcPlus size={10}/></button>
+              </div>
+              <p style={{fontSize:"0.82rem",color:"#C4B5FD",minWidth:55,textAlign:"right",fontFamily:"'Cinzel',serif"}}>₹{item.price*item.qty}</p>
+            </div>
+          ))}
+        </div>
+        {cart.length>0&&(
+          <div style={{padding:"18px 26px 26px",borderTop:"1px solid rgba(196,181,253,0.1)"}}>
+            <div style={{display:"flex",justifyContent:"space-between",marginBottom:16}}>
+              <span style={{color:"rgba(196,181,253,0.55)",fontSize:"0.8rem"}}>Subtotal</span>
+              <span style={{fontFamily:"'Cinzel',serif",color:"#C4B5FD",fontSize:"1.08rem"}}>₹{total}</span>
+            </div>
+            <button style={{width:"100%",background:"linear-gradient(135deg,#7C3AED,#C026D3)",color:"#fff",border:"none",padding:"15px",borderRadius:3,fontFamily:"'Cinzel',serif",fontSize:"0.73rem",letterSpacing:"0.2em",textTransform:"uppercase",animation:"pulseGlow 3s infinite"}}>
+              Place Order →
+            </button>
+          </div>
+        )}
+      </div>
+    </>
+  );
+}
+
+// ── NAVBAR ──
+function Navbar({page,setPage,cartCount,openCart}){
+  const [scrolled,setScrolled]=useState(false);
+  const [mOpen,setMOpen]=useState(false);
+  useEffect(()=>{
+    const fn=()=>setScrolled(window.scrollY>50);
+    window.addEventListener("scroll",fn,{passive:true}); return()=>window.removeEventListener("scroll",fn);
+  },[]);
+  const links=[
+    {key:"home",label:"Home"},{key:"cakes",label:"Cakes"},{key:"pastries",label:"Pastries"},
+    {key:"savories",label:"Savories"},{key:"desserts",label:"Desserts"},
+    {key:"cookies",label:"Cookies"},{key:"stores",label:"Find Store"},
+  ];
+  const go=k=>{setPage(k);window.scrollTo(0,0);setMOpen(false);};
+  return(
+    <nav style={{position:"fixed",top:0,width:"100%",zIndex:900,padding:scrolled?"12px 48px":"22px 48px",background:scrolled?"rgba(8,0,18,0.97)":"linear-gradient(to bottom,rgba(8,0,18,0.95),transparent)",borderBottom:scrolled?"1px solid rgba(196,181,253,0.12)":"none",transition:"all 0.35s",display:"flex",alignItems:"center",justifyContent:"space-between",backdropFilter:scrolled?"blur(20px)":"none",flexWrap:"wrap",gap:10}}>
+      <button onClick={()=>go("home")} style={{fontFamily:"'Cinzel',serif",fontSize:"1.3rem",fontWeight:700,background:"none",border:"none",color:"#EDE9FE",letterSpacing:"0.08em"}}>
+        Mio <span style={{color:"#A855F7"}}>Amore</span>
+      </button>
+      <div style={{display:"flex",gap:24,alignItems:"center",flexWrap:"wrap"}}>
+        {links.map(l=>(
+          <button key={l.key} onClick={()=>go(l.key)} style={{background:"none",border:"none",color:page===l.key?"#C4B5FD":"rgba(196,181,253,0.5)",fontSize:"0.7rem",letterSpacing:"0.15em",textTransform:"uppercase",transition:"color 0.2s",borderBottom:page===l.key?"1px solid #A855F7":"1px solid transparent",paddingBottom:2}}>{l.label}</button>
+        ))}
+        <button onClick={openCart} style={{background:"rgba(124,58,237,0.2)",border:"1px solid rgba(196,181,253,0.2)",borderRadius:"50%",width:38,height:38,color:"#C4B5FD",display:"flex",alignItems:"center",justifyContent:"center",position:"relative"}}>
+          <IcCart size={16}/>
+          {cartCount>0&&<span style={{position:"absolute",top:-5,right:-5,background:"#C026D3",color:"#fff",fontSize:"0.58rem",width:17,height:17,borderRadius:"50%",display:"flex",alignItems:"center",justifyContent:"center",fontFamily:"'Cinzel',serif"}}>{cartCount}</span>}
+        </button>
+      </div>
+    </nav>
+  );
+}
+
+// ── PAGE SHELL ──
+function PageShell({title,subtitle,children}){
+  useEffect(()=>{
+    const els=document.querySelectorAll(".reveal");
+    const obs=new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting)e.target.classList.add("vis");}),{threshold:0.08});
+    els.forEach(e=>obs.observe(e)); return()=>obs.disconnect();
+  });
+  return(
+    <div style={{minHeight:"100vh",paddingTop:100}}>
+      <div style={{padding:"55px 60px 45px",background:"linear-gradient(135deg,rgba(74,21,128,0.22),rgba(8,0,18,0))",borderBottom:"1px solid rgba(196,181,253,0.08)"}}>
+        <p style={{fontSize:"0.58rem",letterSpacing:"0.45em",color:"#A855F7",textTransform:"uppercase",marginBottom:10}}>Mio Amore</p>
+        <h1 style={{fontFamily:"'Playfair Display',serif",fontSize:"clamp(2.2rem,5vw,3.8rem)",fontWeight:400,color:"#FAF5FF",lineHeight:1.1}}>{title}</h1>
+        {subtitle&&<p style={{color:"rgba(196,181,253,0.48)",marginTop:10,fontSize:"0.92rem",fontWeight:300,maxWidth:520}}>{subtitle}</p>}
+      </div>
+      <div style={{padding:"45px 60px 70px"}}>{children}</div>
+    </div>
+  );
+}
+
+// ── CAKES PAGE ──
+function CakesPage({onAdd,wishlist,toggleWish}){
+  const [tab,setTab]=useState("ready");
+  const items=tab==="ready"?READY_CAKES:MTO_CAKES;
+  return(
+    <PageShell title="Our Cakes" subtitle="From everyday celebrations to grand weddings — over 50 varieties freshly baked daily.">
+      <div style={{display:"flex",gap:3,marginBottom:36,borderBottom:"1px solid rgba(196,181,253,0.1)"}}>
+        {[{key:"ready",label:"Ready To Go"},{key:"mto",label:"Made To Order"}].map(t=>(
+          <button key={t.key} onClick={()=>setTab(t.key)} style={{background:"none",border:"none",color:tab===t.key?"#C4B5FD":"rgba(196,181,253,0.4)",fontFamily:"'Cinzel',serif",fontSize:"0.7rem",letterSpacing:"0.2em",textTransform:"uppercase",padding:"13px 22px",borderBottom:tab===t.key?"2px solid #A855F7":"2px solid transparent",transition:"all 0.25s",marginBottom:-1}}>{t.label}</button>
+        ))}
+      </div>
+      <ProductGrid items={items} onAdd={onAdd} wishlist={wishlist} toggleWish={toggleWish}/>
+      {tab==="ready"&&(
+        <div className="reveal" style={{marginTop:55,padding:"38px",background:"rgba(74,21,128,0.18)",border:"1px solid rgba(196,181,253,0.1)",borderRadius:8,textAlign:"center"}}>
+          <IcSparkle size={30} color="#A855F7" />
+          <h3 style={{fontFamily:"'Playfair Display',serif",fontSize:"1.7rem",fontWeight:400,color:"#FAF5FF",margin:"14px 0 10px"}}>Need a Custom Cake?</h3>
+          <p style={{color:"rgba(196,181,253,0.5)",maxWidth:460,margin:"0 auto 22px",fontSize:"0.88rem",lineHeight:1.75}}>From photo-print designs to dream-shape creations — our artisans bring your vision to life. Contact your nearest store.</p>
+          <button style={{background:"linear-gradient(135deg,#7C3AED,#C026D3)",color:"#fff",border:"none",padding:"13px 32px",fontFamily:"'Cinzel',serif",fontSize:"0.7rem",letterSpacing:"0.18em",textTransform:"uppercase",borderRadius:3}}>Request Custom Cake →</button>
+        </div>
+      )}
+    </PageShell>
+  );
+}
+
+// ── PASTRIES PAGE ──
+function PastriesPage({onAdd,wishlist,toggleWish}){
+  return(
+    <PageShell title="Fresh Pastries" subtitle="Handcrafted daily — our pastries are the perfect single-serve indulgence.">
+      <ProductGrid items={PASTRIES} onAdd={onAdd} wishlist={wishlist} toggleWish={toggleWish}/>
+    </PageShell>
+  );
+}
+
+// ── SAVORIES PAGE ──
+function SavoriesPage({onAdd,wishlist,toggleWish}){
+  const [tab,setTab]=useState("veg");
+  return(
+    <PageShell title="Savory Snacks" subtitle="Hot, fresh and flavour-packed — perfect with your chai or as a quick bite.">
+      <div style={{display:"flex",gap:3,marginBottom:36,borderBottom:"1px solid rgba(196,181,253,0.1)"}}>
+        {[{key:"veg",label:"🥗  Veg Savories"},{key:"nv",label:"🍗  Non-Veg Savories"}].map(t=>(
+          <button key={t.key} onClick={()=>setTab(t.key)} style={{background:"none",border:"none",color:tab===t.key?"#C4B5FD":"rgba(196,181,253,0.4)",fontFamily:"'Cinzel',serif",fontSize:"0.7rem",letterSpacing:"0.2em",textTransform:"uppercase",padding:"13px 26px",borderBottom:tab===t.key?"2px solid #A855F7":"2px solid transparent",transition:"all 0.25s",marginBottom:-1}}>{t.label}</button>
+        ))}
+      </div>
+      <ProductGrid items={tab==="veg"?VEG_SAV:NV_SAV} onAdd={onAdd} wishlist={wishlist} toggleWish={toggleWish}/>
+    </PageShell>
+  );
+}
+
+// ── DESSERTS PAGE ──
+function DessertsPage({onAdd,wishlist,toggleWish}){
+  return(
+    <PageShell title="Desserts & Muffins" subtitle="Cold indulgences and warm bakes for every sweet craving.">
+      <ProductGrid items={DESSERTS} onAdd={onAdd} wishlist={wishlist} toggleWish={toggleWish}/>
+    </PageShell>
+  );
+}
+
+// ── COOKIES PAGE ──
+function CookiesPage({onAdd,wishlist,toggleWish}){
+  return(
+    <PageShell title="Cookies & Sweets" subtitle="Traditional Indian sweets meet artisanal baked cookies — a perfect union.">
+      <ProductGrid items={COOKIES} onAdd={onAdd} wishlist={wishlist} toggleWish={toggleWish}/>
+    </PageShell>
+  );
+}
+
+// ── STORES PAGE ──
+function StoresPage(){
+  const cities=[["Kolkata",22],["Bhubaneswar",14],["Patna",18],["Ranchi",11],["Jamshedpur",9],["Cuttack",8],["Siliguri",12],["Guwahati",7],["Durgapur",10],["Asansol",9],["Dhanbad",8],["Raipur",6],["Bokaro",7],["Berhampur",5],["Rourkela",6]];
+  return(
+    <PageShell title="Find a Store" subtitle="With 300+ stores across 100 cities in Eastern India — we're always nearby.">
+      <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(260px,1fr))",gap:18,marginBottom:50}}>
+        {cities.map(([city,n])=>(
+          <div key={city} className="card-hover" style={{background:"rgba(45,16,87,0.35)",border:"1px solid rgba(196,181,253,0.1)",borderRadius:6,padding:"22px 26px",display:"flex",alignItems:"center",gap:14}}>
+            <div style={{width:42,height:42,background:"linear-gradient(135deg,rgba(124,58,237,0.3),rgba(192,38,211,0.3))",borderRadius:"50%",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+              <IcMap size={17} color="#A855F7"/>
+            </div>
+            <div style={{flex:1}}>
+              <h4 style={{fontFamily:"'Cinzel',serif",fontSize:"0.88rem",color:"#FAF5FF",marginBottom:2}}>{city}</h4>
+              <p style={{fontSize:"0.7rem",color:"rgba(196,181,253,0.42)"}}>{n} stores</p>
+            </div>
+            <IcChevron size={15} color="rgba(196,181,253,0.3)"/>
+          </div>
+        ))}
+      </div>
+      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:22}}>
+        <div style={{background:"rgba(45,16,87,0.3)",border:"1px solid rgba(196,181,253,0.1)",borderRadius:8,padding:"34px"}}>
+          <IcPhone size={22} color="#A855F7"/>
+          <h3 style={{fontFamily:"'Playfair Display',serif",fontSize:"1.25rem",color:"#FAF5FF",margin:"12px 0 8px"}}>Call Us</h3>
+          <p style={{color:"rgba(196,181,253,0.45)",fontSize:"0.83rem",marginBottom:14,lineHeight:1.7}}>Our customer care team is available 9AM – 9PM, every day.</p>
+          <p style={{fontFamily:"'Cinzel',serif",color:"#C4B5FD",fontSize:"1.05rem"}}>1800-XXX-XXXX</p>
+        </div>
+        <div style={{background:"rgba(45,16,87,0.3)",border:"1px solid rgba(196,181,253,0.1)",borderRadius:8,padding:"34px"}}>
+          <IcTruck size={22} color="#A855F7"/>
+          <h3 style={{fontFamily:"'Playfair Display',serif",fontSize:"1.25rem",color:"#FAF5FF",margin:"12px 0 8px"}}>Home Delivery</h3>
+          <p style={{color:"rgba(196,181,253,0.45)",fontSize:"0.83rem",marginBottom:18,lineHeight:1.7}}>Fresh delivery within 2-4 hours in select cities.</p>
+          <button style={{background:"linear-gradient(135deg,#7C3AED,#A855F7)",color:"#fff",border:"none",padding:"11px 22px",borderRadius:3,fontFamily:"'Cinzel',serif",fontSize:"0.67rem",letterSpacing:"0.15em"}}>Check Availability</button>
+        </div>
+      </div>
+    </PageShell>
+  );
+}
+
+// ── HOME PAGE ──
+function HomePage({setPage,onAdd,wishlist,toggleWish}){
+  const cakeRef=useRef();
+  useEffect(()=>{
+    const els=document.querySelectorAll(".reveal");
+    const obs=new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting)e.target.classList.add("vis");}),{threshold:0.08});
+    els.forEach(e=>obs.observe(e)); return()=>obs.disconnect();
+  },[]);
+  const go=k=>{setPage(k);window.scrollTo(0,0);};
+  const cats=[
+    {key:"cakes",label:"Celebration Cakes",sub:"60+ varieties",img:CI[6],icon:"🎂"},
+    {key:"pastries",label:"Fresh Pastries",sub:"11 varieties",img:PI[0],icon:"🥐"},
+    {key:"savories",label:"Savory Snacks",sub:"18 varieties",img:SI[1],icon:"🥗"},
+    {key:"desserts",label:"Cold Desserts",sub:"12 varieties",img:DI[0],icon:"🍮"},
+    {key:"cookies",label:"Cookies & Sweets",sub:"13 varieties",img:KI[0],icon:"🍪"},
+    {key:"cakes",label:"Custom Cakes",sub:"Your vision",img:CI[5],icon:"✨"},
+  ];
+  const featured=[READY_CAKES[11],READY_CAKES[15],READY_CAKES[6],MTO_CAKES[24],READY_CAKES[17],MTO_CAKES[13]];
+  const testimonials=[
+    {text:"Every celebration in our family starts with a call to Mio Amore. The Red Velvet is simply divine — moist and perfectly balanced.",name:"Priya M.",city:"Kolkata"},
+    {text:"Ordered a custom wedding cake and was blown away. The artistry, the taste — everything was exactly as we imagined. Magical.",name:"Rahul & Ananya",city:"Bhubaneswar"},
+    {text:"Three decades and Mio Amore still delivers the same quality my parents loved. That consistency is worth celebrating itself.",name:"Sumita D.",city:"Patna"},
+  ];
+  return(
+    <div>
+      {/* HERO */}
+      <section style={{height:"100vh",position:"relative",display:"flex",alignItems:"center",overflow:"hidden"}}>
+        <div style={{position:"absolute",inset:0,background:"radial-gradient(ellipse at 30% 50%,rgba(124,58,237,0.18) 0%,transparent 60%),radial-gradient(ellipse at 80% 20%,rgba(192,38,211,0.1) 0%,transparent 50%)"}}/>
+        <ThreeHero/>
+        <div style={{position:"relative",zIndex:10,padding:"0 80px",maxWidth:700,animation:"fadeUp 1s 0.3s both"}}>
+          <p style={{fontSize:"0.62rem",letterSpacing:"0.5em",color:"#A855F7",textTransform:"uppercase",marginBottom:18}}>Eastern India's No. 1 Bakery · Est. 1994</p>
+          <h1 style={{fontFamily:"'Playfair Display',serif",fontSize:"clamp(3rem,7vw,6rem)",fontWeight:400,lineHeight:1.06,color:"#FAF5FF",marginBottom:24}}>
+            <em style={{fontStyle:"italic",color:"#C4B5FD"}}>Baked with</em><br/>
+            Love &amp;<br/>
+            <span style={{fontFamily:"'Cinzel',serif",fontWeight:700,color:"#A855F7",fontSize:"0.5em",letterSpacing:"0.08em"}}>Crafted for Joy</span>
+          </h1>
+          <p style={{color:"rgba(196,181,253,0.58)",fontSize:"0.97rem",lineHeight:1.78,maxWidth:420,marginBottom:40,fontWeight:300}}>From freshly baked celebration cakes to hot savory snacks — making moments sweeter since 1994.</p>
+          <div style={{display:"flex",gap:14,flexWrap:"wrap"}}>
+            <button onClick={()=>go("cakes")} style={{background:"linear-gradient(135deg,#7C3AED,#A855F7)",color:"#fff",border:"none",padding:"15px 32px",fontFamily:"'Cinzel',serif",fontSize:"0.7rem",letterSpacing:"0.18em",textTransform:"uppercase",borderRadius:3,transition:"all 0.3s"}}
+              onMouseEnter={e=>e.currentTarget.style.transform="translateY(-2px)"}
+              onMouseLeave={e=>e.currentTarget.style.transform="translateY(0)"}>Explore Cakes</button>
+            <button onClick={()=>go("stores")} style={{background:"transparent",color:"#C4B5FD",border:"1px solid rgba(196,181,253,0.3)",padding:"15px 32px",fontFamily:"'Cinzel',serif",fontSize:"0.7rem",letterSpacing:"0.18em",textTransform:"uppercase",borderRadius:3,transition:"all 0.3s"}}>Find a Store</button>
+          </div>
+        </div>
+        <div style={{position:"absolute",bottom:32,left:"50%",transform:"translateX(-50%)",textAlign:"center",zIndex:10,animation:"fadeUp 1s 1.2s both"}}>
+          <p style={{fontSize:"0.56rem",letterSpacing:"0.4em",color:"#A855F7",textTransform:"uppercase",marginBottom:8}}>Scroll</p>
+          <div style={{width:1,height:42,background:"linear-gradient(to bottom,#A855F7,transparent)",margin:"0 auto"}}/>
+        </div>
+      </section>
+
+      {/* MARQUEE */}
+      <div style={{background:"linear-gradient(135deg,#4A1580,#7C3AED)",padding:"15px 0",overflow:"hidden",borderTop:"1px solid rgba(255,255,255,0.08)"}}>
+        <div style={{display:"flex",gap:50,whiteSpace:"nowrap",animation:"marquee 22s linear infinite",width:"max-content"}}>
+          {[...Array(2)].flatMap(()=>["Celebration Cakes","Fresh Pastries","Savory Snacks","Custom Orders","Wedding Cakes","Birthday Specials","300+ Stores","100 Cities","Freshly Baked Daily","Est. 1994"].map((t,j)=>(
+            <span key={t+j} style={{fontFamily:"'Cinzel',serif",fontSize:"0.66rem",letterSpacing:"0.26em",textTransform:"uppercase",color:"rgba(255,255,255,0.8)",display:"flex",alignItems:"center",gap:16}}>
+              <span style={{color:"#C4B5FD",fontSize:"0.75rem"}}>✦</span>{t}
+            </span>
+          )))}
+        </div>
+      </div>
+
+      {/* CATEGORIES */}
+      <section style={{padding:"95px 60px"}}>
+        <div className="reveal" style={{marginBottom:55,display:"flex",alignItems:"flex-end",justifyContent:"space-between"}}>
+          <div>
+            <p style={{fontSize:"0.58rem",letterSpacing:"0.45em",color:"#A855F7",textTransform:"uppercase",marginBottom:10}}>Our Collections</p>
+            <h2 style={{fontFamily:"'Playfair Display',serif",fontSize:"clamp(1.9rem,4vw,3.2rem)",fontWeight:400,color:"#FAF5FF"}}>Every Craving <em style={{fontStyle:"italic",color:"#C4B5FD"}}>Catered For</em></h2>
+          </div>
+        </div>
+        <div className="reveal" style={{display:"grid",gridTemplateColumns:"2fr 1fr 1fr",gridTemplateRows:"auto auto",gap:3}}>
+          {cats.map((cat,i)=>(
+            <div key={i} onClick={()=>go(cat.key)} style={{gridRow:i===0?"1/3":"auto",position:"relative",overflow:"hidden",cursor:"pointer",minHeight:i===0?480:200,transition:"transform 0.4s"}}>
+              <img src={cat.img} alt={cat.label} style={{position:"absolute",inset:0,width:"100%",height:"100%",objectFit:"cover",filter:"brightness(0.58) saturate(0.8)",transition:"transform 0.5s"}}
+                onMouseEnter={e=>e.currentTarget.style.transform="scale(1.05)"}
+                onMouseLeave={e=>e.currentTarget.style.transform="scale(1)"}/>
+              <div style={{position:"absolute",inset:0,background:"linear-gradient(135deg,rgba(74,21,128,0.5) 0%,rgba(8,0,18,0.72) 100%)"}}/>
+              <div style={{position:"absolute",bottom:0,left:0,right:0,padding:"24px 26px"}}>
+                <div style={{fontSize:i===0?"1.6rem":"1.2rem",marginBottom:5}}>{cat.icon}</div>
+                <h3 style={{fontFamily:"'Playfair Display',serif",fontSize:i===0?"1.7rem":"1.15rem",fontWeight:400,color:"#FAF5FF",marginBottom:3}}>{cat.label}</h3>
+                <p style={{fontSize:"0.62rem",letterSpacing:"0.2em",color:"rgba(196,181,253,0.65)",textTransform:"uppercase"}}>{cat.sub}</p>
+              </div>
+              <div style={{position:"absolute",top:14,right:14,opacity:0.4}}><IcArrow size={16} color="#C4B5FD"/></div>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* FEATURED */}
+      <section style={{padding:"0 60px 95px"}}>
+        <div className="reveal" style={{display:"flex",alignItems:"flex-end",justifyContent:"space-between",marginBottom:45}}>
+          <div>
+            <p style={{fontSize:"0.58rem",letterSpacing:"0.45em",color:"#A855F7",textTransform:"uppercase",marginBottom:10}}>Our Bestsellers</p>
+            <h2 style={{fontFamily:"'Playfair Display',serif",fontSize:"clamp(1.9rem,4vw,3rem)",fontWeight:400,color:"#FAF5FF"}}>Crafted with <em style={{fontStyle:"italic",color:"#C4B5FD"}}>Passion</em></h2>
+          </div>
+          <button onClick={()=>go("cakes")} style={{background:"none",border:"none",color:"#A855F7",fontSize:"0.68rem",letterSpacing:"0.2em",textTransform:"uppercase",borderBottom:"1px solid rgba(168,85,247,0.35)",paddingBottom:2}}>View all →</button>
+        </div>
+        <div className="reveal" style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:18}}>
+          {featured.map(item=><ProductCard key={item.id} item={item} onAdd={onAdd} wishlist={wishlist} toggleWish={toggleWish}/>)}
+        </div>
+      </section>
+
+      {/* 3D CAKE SCROLL */}
+      <div ref={cakeRef} style={{height:"290vh",position:"relative"}}>
+        <ThreeCake sectionRef={cakeRef}/>
+      </div>
+
+      {/* STATS */}
+      <section style={{padding:"75px 60px",background:"linear-gradient(135deg,rgba(74,21,128,0.32),rgba(8,0,18,0.5))",borderTop:"1px solid rgba(196,181,253,0.1)",borderBottom:"1px solid rgba(196,181,253,0.1)",display:"flex",justifyContent:"space-around",flexWrap:"wrap",gap:36}}>
+        {[["30+","Years of Heritage"],["300+","Stores Across India"],["100","Cities Served"],["5M+","Happy Customers"]].map(([n,l])=>(
+          <div key={l} className="reveal" style={{textAlign:"center"}}>
+            <div style={{fontFamily:"'Playfair Display',serif",fontSize:"clamp(2.2rem,5vw,3.8rem)",fontWeight:300,color:"#C4B5FD",lineHeight:1}}>{n}</div>
+            <div style={{fontSize:"0.62rem",letterSpacing:"0.28em",color:"rgba(196,181,253,0.42)",marginTop:7,textTransform:"uppercase"}}>{l}</div>
+          </div>
+        ))}
+      </section>
+
+      {/* WHY US */}
+      <section style={{padding:"95px 60px"}}>
+        <div className="reveal" style={{textAlign:"center",marginBottom:55}}>
+          <p style={{fontSize:"0.58rem",letterSpacing:"0.45em",color:"#A855F7",textTransform:"uppercase",marginBottom:10}}>Why Choose Us</p>
+          <h2 style={{fontFamily:"'Playfair Display',serif",fontSize:"clamp(1.9rem,4vw,3rem)",fontWeight:400,color:"#FAF5FF"}}>The <em style={{fontStyle:"italic",color:"#C4B5FD"}}>Mio Amore</em> Promise</h2>
+        </div>
+        <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(230px,1fr))",gap:22}}>
+          {[
+            {icon:<IcAward size={26} color="#A855F7"/>,title:"No Preservatives",desc:"Every product is made fresh daily with natural ingredients and zero preservatives."},
+            {icon:<IcClock size={26} color="#A855F7"/>,title:"Freshly Baked Daily",desc:"Our bakers begin work before dawn so you always get the freshest bakes possible."},
+            {icon:<IcTruck size={26} color="#A855F7"/>,title:"Doorstep Delivery",desc:"Fresh delivery within 2-4 hours in select cities across Eastern India."},
+            {icon:<IcCheck size={26} color="#A855F7"/>,title:"30 Years of Trust",desc:"Kolkata's most loved bakery since 1994 — trusted by millions of families."},
+          ].map((f,i)=>(
+            <div key={i} className="reveal card-hover" style={{background:"rgba(45,16,87,0.32)",border:"1px solid rgba(196,181,253,0.1)",borderRadius:8,padding:"34px 28px"}}>
+              <div style={{marginBottom:16}}>{f.icon}</div>
+              <h4 style={{fontFamily:"'Cinzel',serif",fontSize:"0.82rem",color:"#FAF5FF",marginBottom:10,letterSpacing:"0.05em"}}>{f.title}</h4>
+              <p style={{color:"rgba(196,181,253,0.48)",fontSize:"0.83rem",lineHeight:1.75,fontWeight:300}}>{f.desc}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* TESTIMONIALS */}
+      <section style={{padding:"95px 60px",background:"rgba(255,255,255,0.012)"}}>
+        <div className="reveal" style={{textAlign:"center",marginBottom:55}}>
+          <p style={{fontSize:"0.58rem",letterSpacing:"0.45em",color:"#A855F7",textTransform:"uppercase",marginBottom:10}}>What Our Patrons Say</p>
+          <h2 style={{fontFamily:"'Playfair Display',serif",fontSize:"clamp(1.9rem,4vw,3rem)",fontWeight:400,color:"#FAF5FF"}}>Stories of <em style={{fontStyle:"italic",color:"#C4B5FD"}}>Sweetness</em></h2>
+        </div>
+        <div className="reveal" style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(260px,1fr))",gap:24}}>
+          {testimonials.map((t,i)=>(
+            <div key={i} style={{background:"rgba(45,16,87,0.32)",border:"1px solid rgba(196,181,253,0.1)",borderRadius:8,padding:"38px 34px",position:"relative"}}>
+              <div style={{fontFamily:"'Playfair Display',serif",fontSize:"4.5rem",color:"#7C3AED",opacity:0.22,position:"absolute",top:10,left:22,lineHeight:1}}>"</div>
+              <div style={{color:"#A855F7",marginBottom:14,fontSize:"0.9rem"}}>★★★★★</div>
+              <p style={{fontFamily:"'Playfair Display',serif",fontStyle:"italic",color:"rgba(196,181,253,0.72)",lineHeight:1.75,marginBottom:24,fontSize:"0.97rem",position:"relative"}}>{t.text}</p>
+              <p style={{fontSize:"0.6rem",letterSpacing:"0.28em",color:"#A855F7",textTransform:"uppercase"}}>— {t.name}, {t.city}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* FOOTER */}
+      <footer style={{borderTop:"1px solid rgba(196,181,253,0.1)",padding:"75px 60px 36px"}}>
+        <div style={{background:"linear-gradient(to right,#4A1580,#7C3AED,#4A1580)",height:2,marginBottom:60,opacity:0.5,borderRadius:1}}/>
+        <div style={{display:"grid",gridTemplateColumns:"2fr 1fr 1fr 1fr",gap:50,marginBottom:55,flexWrap:"wrap"}}>
+          <div>
+            <div style={{fontFamily:"'Cinzel',serif",fontSize:"1.5rem",fontWeight:700,color:"#EDE9FE",marginBottom:16}}>Mio <span style={{color:"#A855F7"}}>Amore</span></div>
+            <p style={{fontFamily:"'Playfair Display',serif",fontStyle:"italic",color:"rgba(196,181,253,0.38)",lineHeight:1.7,marginBottom:22,fontSize:"0.9rem"}}>"My Dearest" — Italian for our love of baking, poured into every creation since 1994.</p>
+            <div style={{display:"flex",gap:10}}>
+              {[<IcInsta size={16}/>,<IcFb size={16}/>].map((ic,i)=>(
+                <button key={i} style={{background:"rgba(196,181,253,0.08)",border:"1px solid rgba(196,181,253,0.15)",borderRadius:"50%",width:34,height:34,display:"flex",alignItems:"center",justifyContent:"center",color:"#C4B5FD"}}>{ic}</button>
+              ))}
+            </div>
+          </div>
+          {[
+            {title:"Shop",links:["Birthday Cakes","Wedding Cakes","Pastries","Savory Snacks","Cookies & Sweets","Cold Desserts"]},
+            {title:"Company",links:["Our Story","Franchise","Careers","Press","Contact Us","Blog"]},
+            {title:"Locations",links:["West Bengal","Odisha","Bihar","Jharkhand","Assam","All Cities"]},
+          ].map(col=>(
+            <div key={col.title}>
+              <h4 style={{fontSize:"0.58rem",letterSpacing:"0.35em",textTransform:"uppercase",color:"#A855F7",marginBottom:18}}>{col.title}</h4>
+              <ul style={{listStyle:"none"}}>
+                {col.links.map(l=><li key={l} style={{marginBottom:10}}><a href="#" style={{color:"rgba(196,181,253,0.4)",fontSize:"0.83rem",fontWeight:300,textDecoration:"none",transition:"color 0.2s"}} onMouseEnter={e=>e.target.style.color="#C4B5FD"} onMouseLeave={e=>e.target.style.color="rgba(196,181,253,0.4)"}>{l}</a></li>)}
+              </ul>
+            </div>
+          ))}
+        </div>
+        <div style={{borderTop:"1px solid rgba(255,255,255,0.05)",paddingTop:26,display:"flex",justifyContent:"space-between",alignItems:"center",flexWrap:"wrap",gap:10}}>
+          <span style={{fontSize:"0.7rem",color:"rgba(196,181,253,0.22)",letterSpacing:"0.08em"}}>© 2024 Mio Amore. All rights reserved.</span>
+          <span style={{fontSize:"0.7rem",color:"rgba(196,181,253,0.22)",letterSpacing:"0.08em"}}>Crafted with ♥ in Eastern India</span>
+        </div>
+      </footer>
+    </div>
+  );
+}
+
+// ── APP ROOT ──
+function App(){
+  const [page,setPage]=useState("home");
+  const [cart,setCart]=useState([]);
+  const [cartOpen,setCartOpen]=useState(false);
+  const [wishlist,setWishlist]=useState(new Set());
+  const [toast,setToast]=useState(null);
+  const showToast=msg=>{setToast(msg);setTimeout(()=>setToast(null),2600);};
+  const addToCart=item=>{
+    setCart(prev=>{
+      const ex=prev.find(i=>i.id===item.id);
+      if(ex)return prev.map(i=>i.id===item.id?{...i,qty:i.qty+1}:i);
+      return[...prev,{...item,qty:1}];
+    });
+    showToast(item.name+" added to cart");
+  };
+  const changeQty=(id,delta)=>setCart(prev=>prev.map(i=>i.id===id?{...i,qty:i.qty+delta}:i).filter(i=>i.qty>0));
+  const toggleWish=id=>setWishlist(prev=>{const n=new Set(prev);n.has(id)?n.delete(id):n.add(id);return n;});
+  const cartCount=cart.reduce((s,i)=>s+i.qty,0);
+  const pp={setPage,onAdd:addToCart,wishlist,toggleWish};
+  return(
+    <>
+      <Navbar page={page} setPage={setPage} cartCount={cartCount} openCart={()=>setCartOpen(true)}/>
+      <CartDrawer cart={cart} open={cartOpen} onClose={()=>setCartOpen(false)} onQty={changeQty}/>
+      {page==="home"&&<HomePage {...pp}/>}
+      {page==="cakes"&&<CakesPage {...pp}/>}
+      {page==="pastries"&&<PastriesPage {...pp}/>}
+      {page==="savories"&&<SavoriesPage {...pp}/>}
+      {page==="desserts"&&<DessertsPage {...pp}/>}
+      {page==="cookies"&&<CookiesPage {...pp}/>}
+      {page==="stores"&&<StoresPage/>}
+      {toast&&(
+        <div style={{position:"fixed",bottom:28,left:"50%",transform:"translateX(-50%)",background:"linear-gradient(135deg,#4A1580,#7C3AED)",color:"#fff",padding:"13px 26px",borderRadius:4,fontSize:"0.8rem",letterSpacing:"0.07em",zIndex:9999,animation:"toastPop 0.3s ease",boxShadow:"0 10px 36px rgba(124,58,237,0.5)",border:"1px solid rgba(196,181,253,0.2)",display:"flex",alignItems:"center",gap:9,whiteSpace:"nowrap"}}>
+          <IcCheck size={15} color="#C4B5FD"/>{toast}
+        </div>
+      )}
+    </>
+  );
+}
+
+const root=ReactDOM.createRoot(document.getElementById("root"));
+root.render(<App/>);
+</script>
+</body>
+</html>
